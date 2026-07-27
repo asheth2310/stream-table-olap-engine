@@ -1,5 +1,8 @@
 # ⚡ Stream-Table OLAP Engine
 
+[![CI Pipeline](https://github.com/asheth2310/stream-table-olap-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/asheth2310/stream-table-olap-engine/actions/workflows/ci.yml)
+[![Deploy](https://github.com/asheth2310/stream-table-olap-engine/actions/workflows/deploy.yml/badge.svg)](https://github.com/asheth2310/stream-table-olap-engine/actions/workflows/deploy.yml)
+
 **Sub-second real-time stream-table join and OLAP engine** that ingests 100K+ events/sec, joins streams with dimension tables using SIMD-accelerated Apache Arrow, and serves sub-50ms analytical queries to an interactive dashboard.
 
 <!-- 
