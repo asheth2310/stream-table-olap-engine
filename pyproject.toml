@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "stream-table-olap-engine"
+version = "0.1.0"
+description = "Sub-second real-time stream-table join and OLAP engine"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "aiokafka",
+    "polars",
+    "pyarrow",
+    "duckdb",
+    "pytz",
+    "pydantic",
+    "pydantic-settings",
+    "sse-starlette",
+    "tomli",
+    "tomli-w",
+    "jsonschema",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "hypothesis",
+    "httpx",
+    "ruff",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["olap_engine"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
