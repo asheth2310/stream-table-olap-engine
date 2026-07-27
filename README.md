@@ -14,19 +14,94 @@ Upload to GitHub (drag into an issue to get a URL) or use a GIF.
 
 ## 🏗️ Architecture
 
+```mermaid
+graph LR
+    subgraph "Data Sources"
+        A[📱 Clickstream]
+        B[💰 Financial Telemetry]
+        C[🌐 IoT Sensors]
+    end
+
+    subgraph "Message Broker"
+        D[🔴 Redpanda<br/>Kafka Protocol]
+    end
+
+    subgraph "Processing Engine"
+        E[📥 Ingestion Service<br/>aiokafka + Arrow]
+        F[⏱️ Watermark Manager<br/>10s late tolerance]
+        G[🔗 Join Engine<br/>polars SIMD]
+        H[📊 Window Aggregator<br/>O-1 incremental]
+        I[🗂️ Dimension Table<br/>in-memory hash index]
+    end
+
+    subgraph "Storage"
+        J[🦆 DuckDB<br/>embedded OLAP]
+    end
+
+    subgraph "API Layer"
+        K[⚡ FastAPI<br/>HTTP + WS + SSE]
+    end
+
+    subgraph "Dashboard"
+        L[📈 Throughput Gauge]
+        M[🕐 Timeline Slider]
+        N[💻 SQL Playground]
+    end
+
+    A --> D
+    B --> D
+    C --> D
+    D -->|fact-events| E
+    D -->|dimension-updates| I
+    E -->|Arrow RecordBatch| F
+    F -->|accepted events| G
+    I -->|hash lookup| G
+    G -->|enriched events| H
+    G -->|joined records| J
+    H -->|window results| J
+    J --> K
+    K -->|SSE 1Hz| L
+    K -->|REST query| M
+    K -->|WebSocket| N
 ```
-Event Sources → Redpanda (Kafka) → Ingestion Service → Watermark Manager
-                                                              ↓
-                                                    Join Engine (polars/Arrow)
-                                                    + Dimension Table (in-memory)
-                                                              ↓
-                                                    Window Aggregator (O(1) incremental)
-                                                              ↓
-                                                    DuckDB (embedded OLAP store)
-                                                              ↓
-                                                    FastAPI (HTTP + WebSocket + SSE)
-                                                              ↓
-                                                    Next.js Dashboard (Vercel)
+
+## 🔄 Data Flow
+
+```mermaid
+sequenceDiagram
+    participant Source as Event Source
+    participant Kafka as Redpanda
+    participant Ingest as Ingestion
+    participant WM as Watermark
+    participant Join as Join Engine
+    participant Win as Window Aggregator
+    participant DB as DuckDB
+    participant API as FastAPI
+    participant UI as Dashboard
+
+    Source->>Kafka: Publish event (JSON)
+    Kafka->>Ingest: Consume batch
+    Ingest->>Ingest: Deserialize → Arrow
+    Ingest->>WM: Check event_time
+    
+    alt Within 10s tolerance
+        WM->>Join: Accept event
+        Join->>Join: Left join with dimension table
+        Join->>Win: Add to sliding windows
+        Join->>DB: Persist joined record
+        Win->>DB: Emit window result (on watermark)
+    else Too late (>10s)
+        WM->>WM: Drop + increment counter
+    end
+
+    loop Every 1 second
+        API->>UI: SSE metrics (throughput, lag, p99)
+    end
+
+    UI->>API: SQL query (WebSocket)
+    API->>DB: Execute query
+    DB->>API: Result rows
+    API->>UI: Stream results
 ```
 
 ## 🚀 Quick Start (Local)
